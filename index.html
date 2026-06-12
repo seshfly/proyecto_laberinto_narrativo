@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laberinto narrativo | Elige tu aventura</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0f0a 50%, #0a0a1a 100%);
+            font-family: 'Georgia', 'Times New Roman', serif;
+            padding: 2rem;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .story-card {
+            background: rgba(20, 15, 30, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            color: #e8dcc0;
+            font-family: 'Courier New', monospace;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+        }
+
+        .sub {
+            color: #a09070;
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.7rem;
+            color: #6a5a7a;
+            font-family: monospace;
+        }
+
+        .story-content {
+            min-height: 400px;
+            margin-bottom: 2rem;
+        }
+
+        .story-text {
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: #e8dcc0;
+            text-align: justify;
+            margin-bottom: 1rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .story-image {
+            text-align: center;
+            margin: 1.5rem 0;
+            font-size: 4rem;
+            opacity: 0.8;
+        }
+
+        .ending-badge {
+            display: inline-block;
+            background: rgba(255, 212, 168, 0.2);
+            border: 1px solid #ffd4a8;
+            padding: 0.3rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.7rem;
+            color: #ffd4a8;
+            margin-bottom: 1rem;
+            font-family: monospace;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .option-btn {
+            background: rgba(30, 25, 50, 0.8);
+            border: 1px solid rgba(232, 220, 192, 0.3);
+            padding: 1rem;
+            border-radius: 1rem;
+            cursor: pointer;
+            color: #e8dcc0;
+            font-family: 'Georgia', serif;
+            font-size: 1rem;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .option-btn:hover {
+            background: rgba(50, 45, 80, 0.9);
+            transform: translateX(8px);
+            border-color: #ffd4a8;
+        }
+
+        .option-icon {
+            font-size: 1.2rem;
+            opacity: 0.7;
+        }
+
+        .option-text {
+            flex: 1;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: rgba(30, 25, 50, 0.8);
+            border: 1px solid rgba(232, 220, 192, 0.3);
+            padding: 0.6rem 1.5rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            color: #e8dcc0;
+            font-family: monospace;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(50, 45, 80, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .save-toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(30, 25, 50, 0.95);
+            border-left: 3px solid #ffd4a8;
+            padding: 0.8rem 1.2rem;
+            border-radius: 0.5rem;
+            color: #e8dcc0;
+            font-size: 0.75rem;
+            font-family: monospace;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .save-toast.show {
+            opacity: 1;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .story-card {
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+            .story-card {
+                padding: 1.2rem;
+            }
+            .story-text {
+                font-size: 1rem;
+            }
+            .option-btn {
+                padding: 0.8rem;
+                font-size: 0.9rem;
+            }
+            h1 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="story-card" id="storyCard">
+            <div class="header">
+                <h1>El manuscrito perdido</h1>
+                <div class="sub">Una aventura interactiva</div>
+                <div class="progress-info">
+                    <span id="stepCounter">Paso 0</span>
+                    <span id="saveStatus">Guardado automático</span>
+                </div>
+            </div>
+
+            <div class="story-content">
+                <div id="storyImage" class="story-image">📜</div>
+                <div id="storyText" class="story-text">
+                    Cargando historia...
+                </div>
+                <div id="optionsContainer" class="options-container"></div>
+            </div>
+
+            <div class="control-buttons">
+                <button id="resetBtn" class="control-btn">
+                    Reiniciar aventura
+                </button>
+                <button id="saveManualBtn" class="control-btn">
+                    Guardar manual
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="saveToast" class="save-toast">
+        Partida guardada
+    </div>
+
+    <script>
+
+        const adventureGraph = {
+            "start": {
+                id: "start",
+                text: "Eres un joven bibliotecario que trabaja en la antigua Biblioteca de los Sueños Olvidados. Una noche, mientras ordenabas los estantes más altos, encuentras un manuscrito envuelto en cuero negro. Nadie sabe de dónde vino. Al abrirlo, una nota cae al suelo: 'Quien lea estas palabras quedará atrapado en el recuerdo de quien las escribió, a menos que...' El texto se corta. ¿Qué haces?",
+                image: "📚",
+                options: [
+                    { text: "📖 Leer el manuscrito en voz alta", nextNode: "read_aloud", consequence: "Decides enfrentar el misterio" },
+                    { text: "🔒 Guardarlo en una caja sellada", nextNode: "seal_it", consequence: "El miedo te gana, pero la curiosidad persiste" },
+                    { text: "📞 Llamar a tu mentora, la Dra. Alarcón", nextNode: "call_mentor", consequence: "Buscas ayuda profesional" }
+                ],
+                isEnding: false
+            },
+            
+            "read_aloud": {
+                id: "read_aloud",
+                text: "Comienzas a leer y una niebla dorada envuelve la habitación. Las palabras cobran vida y te transportan a un bosque encantado. Frente a ti hay un sendero que se divide en tres caminos. El primero lleva hacia un claro iluminado por la luna. El segundo se adentra en una cueva oscura. El tercero parece desaparecer entre los árboles. El manuscrito ahora tiene una nueva línea: 'Elige sabiamente, viajero'.",
+                image: "🌲",
+                options: [
+                    { text: "🌙 Tomar el camino del claro iluminado", nextNode: "clearing_path", consequence: "La luz te llama" },
+                    { text: "🕯️ Entrar en la cueva oscura", nextNode: "cave_path", consequence: "La oscuridad te intriga" },
+                    { text: "🌳 Seguir el sendero que se desvanece", nextNode: "vanishing_path", consequence: "Lo desconocido te atrae" }
+                ],
+                isEnding: false
+            },
+            
+            "clearing_path": {
+                id: "clearing_path",
+                text: "Llegas a un claro donde una anciana sabia te espera junto a una fogata. 'Has elegido la luz', te dice. 'Pero la verdad no siempre es cómoda'. Te ofrece dos opciones: conocer el origen del manuscrito o saber tu propio destino. ¿Qué prefieres?",
+                image: "🔥",
+                options: [
+                    { text: "📜 Conocer el origen del manuscrito", nextNode: "origin_knowledge", consequence: "La curiosidad te guía" },
+                    { text: "🔮 Saber tu propio destino", nextNode: "self_destiny", consequence: "Buscas respuestas personales" },
+                    { text: "🌠 Negarte y regresar a la biblioteca", nextNode: "return_normal", consequence: "Prefieres la seguridad" }
+                ],
+                isEnding: false
+            },
+            
+            "origin_knowledge": {
+                id: "origin_knowledge",
+                text: "La anciana te muestra una visión: el manuscrito fue escrito por un poeta que perdió a su gran amor. Cada palabra contiene un fragmento de su alma. Al leerlo, has heredado su recuerdo más preciado. Ahora puedes usar ese conocimiento para ayudar a otros. Te conviertes en el guardián de la biblioteca, ayudando a quienes buscan consuelo en las palabras. Es un final... hermoso.",
+                image: "🏆",
+                options: [],
+                isEnding: true,
+                endingType: "good"
+            },
+            
+            "self_destiny": {
+                id: "self_destiny",
+                text: "La visión te muestra tu futuro: te convertirás en un gran escritor, pero para ello debes aceptar que la soledad será tu compañera durante años. El manuscrito te ha mostrado el precio de la creatividad. Aceptas el desafío y dedicas tu vida a escribir. Tus libros inspiran a millones. Es un final... agridulce.",
+                image: "✍️",
+                options: [],
+                isEnding: true,
+                endingType: "bittersweet"
+            },
+            
+            "return_normal": {
+                id: "return_normal",
+                text: "Decides regresar a la biblioteca. Todo está como lo dejaste. Guardas el manuscrito en un lugar especial y continúas con tu vida. Pero cada noche, sientes la llamada de la aventura que rechazaste. A veces, la decisión más segura no es la más satisfactoria. Es un final... tranquilo, pero con un dejo de nostalgia.",
+                image: "🏠",
+                options: [],
+                isEnding: true,
+                endingType: "neutral"
+            },
+            
+            "cave_path": {
+                id: "cave_path",
+                text: "La cueva es más profunda de lo que imaginabas. Encuentras inscripciones en las paredes que hablan de un tesoro escondido. Al final del túnel, hay dos cofres: uno dorado y uno de piedra. ¿Cuál abres?",
+                image: "🗝️",
+                options: [
+                    { text: "💰 Abrir el cofre dorado", nextNode: "golden_chest", consequence: "La riqueza te atrae" },
+                    { text: "🪨 Abrir el cofre de piedra", nextNode: "stone_chest", consequence: "Lo simple te llama" },
+                    { text: "🚪 Salir de la cueva", nextNode: "exit_cave", consequence: "Prefieres no arriesgar" }
+                ],
+                isEnding: false
+            },
+            
+            "golden_chest": {
+                id: "golden_chest",
+                text: "El cofre contiene monedas de oro y joyas infinitas. Tomas todo lo que puedes y regresas a casa. Te conviertes en la persona más rica de la ciudad. Pero con el tiempo, descubres que la riqueza sin propósito es vacía. El manuscrito desaparece. Es un final... dorado pero hueco.",
+                image: "💰",
+                options: [],
+                isEnding: true,
+                endingType: "wealth"
+            },
+            
+            "stone_chest": {
+                id: "stone_chest",
+                text: "El cofre de piedra contiene solo un diario antiguo. Lo lees y descubres que perteneció al poeta original. Sus palabras te enseñan que el verdadero tesoro está en las experiencias vividas, no en lo material. Decides convertirte en escritor y compartir esta sabiduría. Es un final... iluminador.",
+                image: "📔",
+                options: [],
+                isEnding: true,
+                endingType: "good"
+            },
+            
+            "exit_cave": {
+                id: "exit_cave",
+                text: "Sales de la cueva sin tomar nada. En la entrada, el manuscrito ha cambiado: ahora dice 'Gracias por tu humildad'. Una brisa cálida te devuelve a la biblioteca. Aprendiste que no todo tesoro necesita ser tomado. Es un final... pacífico.",
+                image: "🍃",
+                options: [],
+                isEnding: true,
+                endingType: "neutral"
+            },
+            
+            "vanishing_path": {
+                id: "vanishing_path",
+                text: "El sendero te lleva a una encrucijada del tiempo. Ves versiones de ti mismo: una que tomó el camino de la luz y otra que entró en la cueva. Ambas te miran. Te ofrecen una oportunidad única: cambiar de camino si así lo deseas. ¿Aceptas?",
+                image: "⏳",
+                options: [
+                    { text: "🔄 Cambiar al camino del claro", nextNode: "clearing_path_from_vanishing", consequence: "La luz te llama de nuevo" },
+                    { text: "🔄 Cambiar al camino de la cueva", nextNode: "cave_path_from_vanishing", consequence: "La oscuridad te intriga" },
+                    { text: "✨ Seguir tu camino original", nextNode: "original_path", consequence: "La confianza en ti mismo" }
+                ],
+                isEnding: false
+            },
+            
+            "clearing_path_from_vanishing": {
+                id: "clearing_path_from_vanishing",
+                text: "Das un paso y te encuentras en el claro. La anciana sonríe como si te esperara. 'Al final, todos regresan a la luz', dice. Te ofrece el conocimiento del manuscrito. Aceptas y conviertes tu vida en una obra de arte literario. Es un final... luminoso.",
+                image: "☀️",
+                options: [],
+                isEnding: true,
+                endingType: "good"
+            },
+            
+            "cave_path_from_vanishing": {
+                id: "cave_path_from_vanishing",
+                text: "La cueva te recibe con susurros familiares. Decides no abrir ningún cofre. En cambio, te sientas a escribir tu propia historia en las paredes. El manuscrito se llena de tus palabras. Te conviertes en parte de la leyenda. Es un final... creativo.",
+                image: "🎨",
+                options: [],
+                isEnding: true,
+                endingType: "good"
+            },
+            
+            "original_path": {
+                id: "original_path",
+                text: "Sigues tu camino y llegas a un jardín secreto. Allí encuentras al poeta original, ahora en paz. Te agradece por leer su historia y te concede el don de la escritura eterna. Tu nombre será recordado por siglos. Es un final... legendario.",
+                image: "🏅",
+                options: [],
+                isEnding: true,
+                endingType: "legendary"
+            },
+            
+            "seal_it": {
+                id: "seal_it",
+                text: "Guardas el manuscrito en una caja de cedro y la sellas con cera. Esa noche, no puedes dormir. Escuchas susurros que vienen de la caja. Al amanecer, no resistes y la abres. El manuscrito ahora tiene una nueva página: 'El miedo es el peor de los consejeros. Ahora deberás enfrentar tres pruebas para redimirte'.",
+                image: "⚠️",
+                options: [
+                    { text: "🔥 Enfrentar la prueba del fuego", nextNode: "fire_trial", consequence: "El valor te guía" },
+                    { text: "💧 Enfrentar la prueba del agua", nextNode: "water_trial", consequence: "La introspección te llama" },
+                    { text: "🌪️ Enfrentar la prueba del viento", nextNode: "wind_trial", consequence: "La libertad te atrae" }
+                ],
+                isEnding: false
+            },
+            
+            "fire_trial": {
+                id: "fire_trial",
+                text: "Enfrentas una llama que quema tus miedos. Sales más fuerte, más valiente. El manuscrito se disuelve en cenizas doradas que se posan sobre ti. Ahora eres el nuevo guardián de las historias perdidas. Es un final... ardiente y transformador.",
+                image: "🔥",
+                options: [],
+                isEnding: true,
+                endingType: "good"
+            },
+            
+            "water_trial": {
+                id: "water_trial",
+                text: "Te sumerges en un lago de recuerdos. Aprendes a fluir con las circunstancias, no a resistirlas. El manuscrito se convierte en un libro en blanco donde tú eres el autor. Escribes tu propia historia. Es un final... fluido y libre.",
+                image: "💧",
+                options: [],
+                isEnding: true,
+                endingType: "good"
+            },
+            
+            "wind_trial": {
+                id: "wind_trial",
+                text: "El viento te lleva a través de todas las bibliotecas del mundo. Conoces historias infinitas y te conviertes en un cuentacuentos errante. Tu legado son las sonrisas que dejas atrás. Es un final... ligero y hermoso.",
+                image: "🍃",
+                options: [],
+                isEnding: true,
+                endingType: "good"
+            },
+            
+            "call_mentor": {
+                id: "call_mentor",
+                text: "La Dra. Alarcón llega a medianoche. Examina el manuscrito y palidece. 'Esto no debería estar aquí', susurra. 'Es demasiado peligroso. Debo llevármelo'. Te duele, pero confías en ella. Se va con el manuscrito y nunca más vuelves a saber de él. A veces, la seguridad es mejor que el misterio. Es un final... protector pero incompleto.",
+                image: "📞",
+                options: [],
+                isEnding: true,
+                endingType: "neutral"
+            }
+        };
+
+        let currentNodeId = "start";      
+        let history = [];     
+        let stepCount = 0; 
+        let gameEnded = false; 
+
+        const storyText = document.getElementById('storyText');
+        const storyImage = document.getElementById('storyImage');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const resetBtn = document.getElementById('resetBtn');
+        const saveManualBtn = document.getElementById('saveManualBtn');
+        const stepCounterSpan = document.getElementById('stepCounter');
+        const saveToast = document.getElementById('saveToast');
+
+        function showSaveToast(message = 'Partida guardada') {
+            saveToast.textContent = message;
+            saveToast.classList.add('show');
+            setTimeout(() => {
+                saveToast.classList.remove('show');
+            }, 2000);
+        }
+
+        function saveProgress() {
+            const saveData = {
+                currentNodeId: currentNodeId,
+                history: history,
+                stepCount: stepCount,
+                gameEnded: gameEnded,
+                savedAt: new Date().toISOString()
+            };
+            localStorage.setItem('aventuraProgreso', JSON.stringify(saveData));
+            
+            const saveStatus = document.getElementById('saveStatus');
+            if (saveStatus) {
+                saveStatus.innerHTML = 'Guardado ' + new Date().toLocaleTimeString();
+                setTimeout(() => {
+                    if (!gameEnded) {
+                        saveStatus.innerHTML = 'Guardado automático';
+                    }
+                }, 3000);
+            }
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('aventuraProgreso');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    if (adventureGraph[data.currentNodeId] && !data.gameEnded) {
+                        currentNodeId = data.currentNodeId;
+                        history = data.history || [];
+                        stepCount = data.stepCount || 0;
+                        gameEnded = data.gameEnded || false;
+                        showSaveToast('Progreso cargado');
+                        return true;
+                    }
+                } catch(e) {
+                    console.log('Error cargando progreso');
+                }
+            }
+            return false;
+        }
+
+        function manualSave() {
+            saveProgress();
+            showSaveToast('Partida guardada manualmente');
+        }
+
+        function resetGame() {
+            currentNodeId = "start";
+            history = [];
+            stepCount = 0;
+            gameEnded = false;
+            saveProgress();
+            renderCurrentNode();
+            showSaveToast('Aventura reiniciada');
+        }
+
+        function renderCurrentNode() {
+            const node = adventureGraph[currentNodeId];
+            if (!node) {
+                currentNodeId = "start";
+                renderCurrentNode();
+                return;
+            }
+            
+            stepCounterSpan.textContent = `Paso ${stepCount}`;
+            storyText.textContent = node.text;
+            storyImage.textContent = node.image || '📖';
+            
+            optionsContainer.innerHTML = '';
+            
+            if (node.isEnding || gameEnded) {
+                gameEnded = true;
+                
+                const endingBadge = document.createElement('div');
+                endingBadge.className = 'ending-badge';
+                let badgeText = 'Lograste un';
+                switch(node.endingType) {
+                    case 'good': badgeText += ' Final Feliz'; break;
+                    case 'bittersweet': badgeText += ' Final Agridulce'; break;
+                    case 'neutral': badgeText += ' Final Neutral'; break;
+                    case 'wealth': badgeText += ' Final del Tesoro '; break;
+                    case 'legendary': badgeText += ' Final Legendario'; break;
+                    default: badgeText += ' Fin de la historia ';
+                }
+                endingBadge.textContent = badgeText;
+                optionsContainer.appendChild(endingBadge);
+                
+                const restartOption = document.createElement('div');
+                restartOption.className = 'option-btn';
+                restartOption.innerHTML = `
+                    <span class="option-icon">⟳</span>
+                    <span class="option-text">Comenzar una nueva aventura</span>
+                `;
+                restartOption.addEventListener('click', () => {
+                    resetGame();
+                });
+                optionsContainer.appendChild(restartOption);
+                
+                saveProgress();
+                return;
+            }
+            
+            node.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerHTML = `
+                    <span class="option-icon">${opt.text.charAt(0)}</span>
+                    <span class="option-text">${opt.text}</span>
+                `;
+                
+                btn.title = opt.consequence || '';
+                
+                btn.addEventListener('click', () => {
+                    const nextNode = adventureGraph[opt.nextNode];
+                    if (nextNode) {
+                        history.push({
+                            node: currentNodeId,
+                            choice: opt.text,
+                            consequence: opt.consequence
+                        });
+                        currentNodeId = opt.nextNode;
+                        stepCount++;
+                        renderCurrentNode();
+                        saveProgress(); 
+                    } else {
+                        console.error('Nodo no encontrado:', opt.nextNode);
+                    }
+                });
+                
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function init() {
+            const loaded = loadProgress();
+            if (!loaded) {
+                currentNodeId = "start";
+                history = [];
+                stepCount = 0;
+                gameEnded = false;
+            }
+            
+            renderCurrentNode();
+            
+            resetBtn.addEventListener('click', resetGame);
+            saveManualBtn.addEventListener('click', manualSave);
+            
+            setInterval(() => {
+                if (!gameEnded) {
+                    saveProgress();
+                }
+            }, 30000);
+        }
+        
+        init();
+    </script>
+</body>
+</html>
